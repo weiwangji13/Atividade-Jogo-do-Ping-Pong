@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Jogo de Ping-pong</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Jogo de Ping-Pong</title>
+    
+
+    <audio id="musicaFundo" src="Stand Away.mp3" loop></audio>
+
+    <style>
+        body {
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        canvas {
+            border: 10px solid white;
+            background-color: rgb(202, 64, 133);
+        }
+
+        #menu, #placar, #mensagem {
+            position: absolute;
+            color: white;
+            font-size: 16px;
+        }
+
+        #menu {
+            top: 20px;
+            left: 20px;
+        }
+
+        #placar {
+            top: 20px;
+            right: 20px;
+        }
+
+        #mensagem {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 28px;
+            font-weight: bold;
+            background-color: rgba(0,0,0,0.7);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        #botaoIniciar {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: white;
+            color: black;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="telaJogo" width="600" height="400"></canvas>
+<div id="menu">
+    Dificuldade:
+    <select id="dificuldade">
+        <option value="0.1">Fácil</option>
+        <option value="0.2">Médio</option>
+        <option value="0.3">Difícil</option>
+    </select>
+</div>
+
+<div id="placar">Jogador: 0 | CPU: 0</div>
+<div id="mensagem"></div>
+<button id="botaoIniciar">Iniciar Jogo</button>
+
+<script>
+    const tela = document.getElementById("telaJogo");
+    const contexto = tela.getContext("2d");
+    const musicaFundo = document.getElementById("musicaFundo");
+
+    const alturaRaquete = 80;
+    const larguraRaquete = 10;
+    const raioBola = 7;
+    const pontosParaVencer = 5;
+
+    let jogador1 = tela.height / 2 - alturaRaquete / 2;
+    let cpu = tela.height / 2 - alturaRaquete / 2;
+    let bolaX = tela.width / 2;
+    let bolaY = tela.height / 2;
+    let velocidadeBolaX = 4;
+    let velocidadeBolaY = 4;
+    let pontosJogador = 0;
+    let pontosCpu = 0;
+
+    const dificuldadeSelect = document.getElementById('dificuldade');
+    let dificuldadeCpu = parseFloat(dificuldadeSelect.value);
+    dificuldadeSelect.addEventListener('change', () => {
+        dificuldadeCpu = parseFloat(dificuldadeSelect.value);
+    });
+
+    document.addEventListener('mousemove', (evento) => {
+        let ret = tela.getBoundingClientRect();
+        jogador1 = evento.clientY - ret.top - alturaRaquete / 2;
+        if (jogador1 < 0) jogador1 = 0;
+        if (jogador1 > tela.height - alturaRaquete) jogador1 = tela.height - alturaRaquete;
+    });
+
+    function raquete(x, y, largura, altura, cor) {
+        contexto.fillStyle = cor;
+        contexto.fillRect(x, y, largura, altura);
+    }
+
+    function bola(x, y, raio, cor) {
+        contexto.fillStyle = cor;
+        contexto.beginPath();
+        contexto.arc(x, y, raio, 0, Math.PI * 2);
+        contexto.fill();
+    }
+
+    function reiniciarBola() {
+        bolaX = tela.width / 2;
+        bolaY = tela.height / 2;
+        velocidadeBolaX = -velocidadeBolaX;
+        velocidadeBolaY = 4;
+    }
+
+    function desenharJogo() {
+        raquete(0, 0, tela.width, tela.height, "rgb(202, 64, 133)");
+        raquete(10, jogador1, larguraRaquete, alturaRaquete, "white");
+        raquete(tela.width - 20, cpu, larguraRaquete, alturaRaquete, "black");
+        bola(bolaX, bolaY, raioBola, 'pink');
+    }
+
+    function atualizarPlacar() {
+        document.getElementById("placar").innerText = `Jogador: ${pontosJogador} | CPU: ${pontosCpu}`;
+    }
+
+    function mostrarMensagem(vencedor) {
+        const msg = document.getElementById("mensagem");
+        msg.innerText = `${vencedor} venceu!`;
+        msg.style.display = 'block';
+        setTimeout(() => {
+            msg.style.display = 'none';
+            pontosJogador = 0;
+            pontosCpu = 0;
+            atualizarPlacar();
+        }, 3000);
+    }
+
+    function atualizarJogo() {
+        bolaX += velocidadeBolaX;
+        bolaY += velocidadeBolaY;
+
+        if (bolaY + raioBola > tela.height || bolaY - raioBola < 0) {
+            velocidadeBolaY = -velocidadeBolaY;
+        }
+
+        cpu += (bolaY - (cpu + alturaRaquete / 2)) * dificuldadeCpu;
+        if (cpu < 0) cpu = 0;
+        if (cpu > tela.height - alturaRaquete) cpu = tela.height - alturaRaquete;
+
+        if (bolaX - raioBola < 20 && bolaY > jogador1 && bolaY < jogador1 + alturaRaquete) {
+            velocidadeBolaX = -velocidadeBolaX;
+        }
+
+        if (bolaX + raioBola > tela.width - 20 && bolaY > cpu && bolaY < cpu + alturaRaquete) {
+            velocidadeBolaX = -velocidadeBolaX;
+        }
+
+        if (bolaX < 0) {
+            pontosCpu++;
+            atualizarPlacar();
+            reiniciarBola();
+        }
+
+        if (bolaX > tela.width) {
+            pontosJogador++;
+            atualizarPlacar();
+            reiniciarBola();
+        }
+
+        if (pontosJogador >= pontosParaVencer) {
+            mostrarMensagem("Jogador");
+        }
+
+        if (pontosCpu >= pontosParaVencer) {
+            mostrarMensagem("CPU");
+        }
+    }
+
+    function loopJogo() {
+        atualizarJogo();
+        desenharJogo();
+        requestAnimationFrame(loopJogo);
+    }
+
+   
+    document.getElementById("botaoIniciar").addEventListener("click", () => {
+        musicaFundo.play();
+        loopJogo();
+        document.getElementById("botaoIniciar").style.display = "none"; 
+    });
+</script>
+</body>
+</html>
